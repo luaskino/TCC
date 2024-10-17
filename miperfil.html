@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.5.7/sweetalert2.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.5.7/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+
     <link rel="stylesheet" href="estilo.css">
     <link rel="shortcut icon" href="icono.png">
     <style>
@@ -37,7 +38,6 @@
             gap: 8px;
             padding: 10px 20px;
             background-color: #6a0dad;
-            /* Lila oscuro */
             color: white;
             text-decoration: none;
             border-radius: 5px;
@@ -85,7 +85,6 @@
             width: 48%;
             padding: 10px;
             background-color: #6a0dad;
-            /* Lila oscuro */
             color: white;
             border: none;
             border-radius: 5px;
@@ -112,7 +111,6 @@
 
         .disabled {
             background-color: #e0e0e0;
-            /* Color para campos deshabilitados */
             cursor: not-allowed;
         }
 
@@ -154,24 +152,10 @@
             <label for="ciudad">Ciudad</label>
             <select id="ciudad" name="ciudad" disabled required>
                 <option value="">Seleccione una ciudad</option>
-                <option value="Asunción">Asunción</option>
-                <option value="Luque">Luque</option>
-                <option value="Lambare">Lambare</option>
             </select>
 
             <label for="barrio">Barrio</label>
-            <select id="barrio" name="barrio" disabled required>
-                <option value="">Seleccione un barrio</option>
-                <option value="Villa Morra">Villa Morra</option>
-                <option value="Recoleta">Recoleta</option>
-                <option value="San Vicente">San Vicente</option>
-                <option value="Las Mercedes">Las Mercedes</option>
-                <option value="Sajonia">Sajonia</option>
-                <option value="Barrio Obrero">Barrio Obrero</option>
-                <option value="Manora">Manora</option>
-                <option value="Ciudad Nueva">Ciudad Nueva</option>
-                <option value="Tacumbú">Tacumbú</option>
-            </select>
+            <input type="text" id="barrio" name="barrio" disabled required>
 
             <label for="direccion">Dirección</label>
             <input type="text" id="direccion" name="direccion" disabled required>
@@ -190,29 +174,54 @@
     <script>
         // usuario_id desde localStorage
         const usuarioId = localStorage.getItem('usuario_id');
-
-        // Consulta a la API para obtener los datos del usuario
-        fetch(`http://127.0.0.1:5000/usuarios/${usuarioId}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('nombres').value = data.nombre;
-                document.getElementById('apellidos').value = data.apellido;
-                document.getElementById('cedula').value = data.doc_identidad;
-                document.getElementById('celular').value = data.celular;
-                document.getElementById('ciudad').value = data.nombre_ciudad;
-                document.getElementById('barrio').value = data.nombre_barrio;
-                document.getElementById('direccion').value = data.direccion;
-                document.getElementById('correo').value = data.email;
-            })
-            .catch(error => {
-                console.error('Error al obtener los datos del usuario:', error);
-            });
+    
+        // Cargar ciudades desde la API y llenar el select de ciudad
+        function cargarCiudades() {
+            return fetch('http://127.0.0.1:5000/ciudad')  // Retornar la promesa
+                .then(response => response.json())
+                .then(ciudades => {
+                    const ciudadSelect = document.getElementById('ciudad');
+                    ciudades.forEach(ciudad => {
+                        const option = document.createElement('option');
+                        option.value = ciudad.ciudad_id;
+                        option.textContent = ciudad.descripcion;
+                        ciudadSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar las ciudades:', error);
+                });
+        }
+    
+        // Cargar datos del usuario desde la API
+        function cargarDatosUsuario() {
+            fetch(`http://127.0.0.1:5000/usuarios/${usuarioId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('nombres').value = data.nombre;
+                    document.getElementById('apellidos').value = data.apellido;
+                    document.getElementById('cedula').value = data.doc_identidad;
+                    document.getElementById('celular').value = data.celular;
+                    document.getElementById('barrio').value = data.barrio;
+                    document.getElementById('direccion').value = data.direccion;
+                    document.getElementById('correo').value = data.email;
+                    document.getElementById('ciudad').value = data.ciudad_id; // Cargar la ciudad seleccionada
+                })
+                .catch(error => {
+                    console.error('Error al obtener los datos del usuario:', error);
+                });
+        }
+    
+        // Primero cargar las ciudades, luego cargar los datos del usuario
+        cargarCiudades().then(() => {
+            cargarDatosUsuario();
+        });    
 
         function enableEditing() {
-        const inputs = document.querySelectorAll('.profile-container input, .profile-container select');
-        inputs.forEach(input => input.removeAttribute('disabled'));
-        document.getElementById('save-changes').style.display = 'inline-block';
-    }
+            const inputs = document.querySelectorAll('.profile-container input, .profile-container select');
+            inputs.forEach(input => input.removeAttribute('disabled'));
+            document.getElementById('save-changes').style.display = 'inline-block';
+        }
 
         document.getElementById('save-changes').addEventListener('click', () => {
             const updatedData = {
@@ -242,27 +251,22 @@
                         icon: 'success',
                         confirmButtonText: 'OK'
                     }).then(() => {
-                        window.location.href = 'pantallaprincipal.html'; // Redirige al usuario
+                        window.location.href = 'pantallaprincipal.html';
                     });
                 } else {
                     Swal.fire({
                         title: 'Error',
-                        text: 'Error al guardar los cambios',
+                        text: 'Hubo un problema al guardar los cambios',
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
                 }
             })
             .catch(error => {
-                console.error('Error al actualizar el usuario:', error);
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Error al guardar los cambios',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
+                console.error('Error al guardar los cambios:', error);
             });
         });
     </script>
 </body>
+
 </html>
